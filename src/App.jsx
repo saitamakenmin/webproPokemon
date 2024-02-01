@@ -1,6 +1,6 @@
 import React, { useState } from 'react';
 import Header from "./components/Header";
-import Search from "./components/Search";
+import Introduce from "./components/Introduce";
 import Main from "./components/Pokemons";
 
 export default function App() {
@@ -12,7 +12,7 @@ export default function App() {
   return (
     <div>
       <Header />
-      <Search setSearchedPokemon={setSearchedPokemon} />
+      <Introduce />
       <Main searchedPokemon={searchedPokemon} />
     </div>
   ); 
