@@ -3,7 +3,7 @@ export default function Header() {
       <header>
         <div style={styles.divStyle}>
             <font face = "fantasy">
-            <h1 style={styles.pokemonTitle}>pokemon illustrated book</h1>
+            <h1 style={styles.pokemonTitle}>ポケモン図鑑</h1>
             </font>
         </div>
         
