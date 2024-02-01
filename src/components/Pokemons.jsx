@@ -4,6 +4,8 @@ import ImageListItem from "@mui/material/ImageListItem";
 import ImageListItemBar from "@mui/material/ImageListItemBar";
 import Grid from "@mui/material/Grid";
 import Pagination from "@mui/material/Pagination"; // Import Pagination from MUI
+import Button from '@mui/material/Button';
+import TextField from '@mui/material/TextField';
 
 
 // キャッシュを保存するためのオブジェクト
@@ -109,7 +111,10 @@ async function fetchFlavorText(id) {
   const data = await res.json();
   const flavorTextEntries = data.flavor_text_entries.filter((entry) => entry.language.name === "ja");
   const selectedFlavorText = flavorTextEntries.find((entry) => entry.version.name === "sword") || flavorTextEntries[0];
-  const flavorText = selectedFlavorText.flavor_text;
+  let flavorText = selectedFlavorText.flavor_text;
+
+  // 特殊文字の置換
+  flavorText = flavorText.replace(/\\n/g, ' ');
 
   pokemonCache[id] = { ...(pokemonCache[id] || {}), flavorText };
   return flavorText;
@@ -194,7 +199,7 @@ const searchByGeneration = async (generation) => {
               <p>タイプ: {selectedPokemon.types.join(', ')}</p> 
               <p>身長: {selectedPokemon.height / 10} m</p>
               <p>重さ: {selectedPokemon.weight / 10} kg</p>
-              <p>{flavorText}</p>
+              <p>{selectedPokemon.flavorText || flavorText}</p>
           </div>
       );
   };
@@ -226,29 +231,34 @@ const searchByGeneration = async (generation) => {
 
   const searchPokemon = async () => {
     if (!searchTerm) return;
-
+  
     setLoading(true);
     try {
-        const englishName = nameMapping[searchTerm.toLowerCase()] || searchTerm.toLowerCase();
-        const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${englishName}`);
-        if (!response.ok) {
-            throw new Error('ポケモンが見つかりませんでした');
-        }
-        const data = await response.json();
-
-        // 英語名から日本語名を取得
-        const japaneseName = await fetchPokemonName(data.id);
-
-        // タイプを日本語に翻訳して配列にする
-        const translatedTypes = data.types.map(typeEntry => typeTranslations[typeEntry.type.name] || typeEntry.type.name);
-
-        setSelectedPokemon({...data, japaneseName, types: translatedTypes});
+      const englishName = nameMapping[searchTerm.toLowerCase()] || searchTerm.toLowerCase();
+      const response = await fetch(`https://pokeapi.co/api/v2/pokemon/${englishName}`);
+      if (!response.ok) {
+        throw new Error('ポケモンが見つかりませんでした');
+      }
+      const data = await response.json();
+  
+      // 英語名から日本語名を取得
+      const japaneseName = await fetchPokemonName(data.id);
+  
+      // タイプを日本語に翻訳して配列にする
+      const translatedTypes = data.types.map(typeEntry => typeTranslations[typeEntry.type.name] || typeEntry.type.name);
+  
+      // flavorTextを取得
+      const flavorText = await fetchFlavorText(data.id);
+  
+      // 選択したポケモンの詳細をセット
+      setSelectedPokemon({...data, japaneseName, types: translatedTypes, flavorText});
     } catch (error) {
-        console.error(error);
+      console.error(error);
     } finally {
-        setLoading(false);
+      setLoading(false);
     }
-};
+  };
+  
 
   useEffect(() => {
     const fetchNames = async () => {
@@ -345,7 +355,7 @@ const searchByGeneration = async (generation) => {
         <Grid container spacing={2}>
             {pokemons.map((pokemon, index) => (
                 <Grid item key={index} xs={2} sm={2} md={2} lg={2}>
-                    <ImageList sx={{ width: 370, height: 250 }}>
+                    <ImageList sx={{ width: 380, height: 250 }}>
                         <ImageListItem
                             key={pokemon.id}
                             onClick={() => handlePokemonClick(pokemon)}
@@ -369,50 +379,96 @@ const searchByGeneration = async (generation) => {
                 </Grid>
             ))}
         </Grid>
-        <div style={{ display: "flex", justifyContent: "center", marginTop: "20px" }}>
-            <Pagination
-                count={paginationRange.end}
-                color="primary"
-                onChange={(e, page) => setCurrentPage(page)}
-                page={currentPage}
-            />
-        </div>
+        <div style={{ 
+  display: "flex", 
+  justifyContent: "center", 
+  marginTop: "20px", 
+  marginBottom: "20px",
+  width: "100%" // 横幅を100%に設定
+}}>
+  <Pagination
+    count={paginationRange.end}
+    color="primary"
+    onChange={(e, page) => setCurrentPage(page)}
+    page={currentPage}
+  />
+</div>
 
-      <div>
-        {/* 検索フォーム */}
-        <input
-            type="text"
-            placeholder="ポケモン名を入力"
-            value={searchTerm}
-            onChange={(e) => setSearchTerm(e.target.value)}
-        />
-        <button onClick={searchPokemon}>検索</button>
-      </div>
+        <div style={{ marginBottom: '10px' }}>
+  {/* 検索フォーム */}
+  <TextField
+    label="ポケモン名を入力"
+    variant="outlined"
+    size="medium"
+    value={searchTerm}
+    onChange={(e) => setSearchTerm(e.target.value)}
+    style={{ marginRight: 10, width: 'calc(50% - 60px)' }}
+  />
+  <Button
+    variant="contained"
+    size="large"
+    onClick={searchPokemon}
+    style={{ width: '150px' , height: '56px'}}
+  >
+    検索
+  </Button>
+</div>
+
+<div style={{ marginBottom: '10px' }}>
+  <TextField
+    select
+    label="タイプを選択"
+    value={selectedType}
+    onChange={(e) => setSelectedType(e.target.value)}
+    variant="outlined"
+    size="medium"
+    SelectProps={{ native: true }}
+    style={{ marginRight: 10, width: 'calc(50% - 60px)' }}
+  >
+    <option value="">タイプを選択</option>
+    {Object.keys(typeMapping).map(type => (
+      <option key={type} value={type}>{type}</option>
+    ))}
+  </TextField>
+  <Button
+    variant="contained"
+    size="large"
+    onClick={searchByType}
+    style={{ width: '150px' , height: '56px'}}
+  >
+    タイプで検索
+  </Button>
+</div>
+
+<div style={{ marginBottom: '10px' }}>
+  <TextField
+    select
+    label="世代を選択"
+    value={selectedGeneration}
+    onChange={(e) => setSelectedGeneration(e.target.value)}
+    variant="outlined"
+    size="medium"
+    SelectProps={{ native: true }}
+    style={{ marginRight: 10, width: 'calc(50% - 60px)' }}
+  >
+    <option value="">世代を選択</option>
+    {Object.keys(generationRanges).map(generation => (
+      <option key={generation} value={generation}>{generation}</option>
+    ))}
+  </TextField>
+  <Button
+    variant="contained"
+    size="large"
+    onClick={() => searchByGeneration(selectedGeneration)}
+    style={{ width: '150px' , height: '56px'}}
+  >
+    世代で検索
+  </Button>
+</div>
 
 
-        {/* ローディングと検索結果の表示 */}
-        {loading && <p>読み込み中...</p>}
-
-        <div>
-        {/* タイプ選択のためのドロップダウンメニュー */}
-      <select value={selectedType} onChange={(e) => setSelectedType(e.target.value)}>
-        <option value="">タイプを選択</option>
-        {Object.keys(typeMapping).map(type => (
-          <option key={type} value={type}>{type}</option>
-        ))}
-      </select>
-      <button onClick={searchByType}>タイプで検索</button>
-      </div>
-
-     <div>
-      <select value={selectedGeneration} onChange={(e) => setSelectedGeneration(e.target.value)}>
-        <option value="">世代を選択</option>
-          {Object.keys(generationRanges).map(generation => (
-        <option key={generation} value={generation}>{generation}</option>
-      ))}
-      </select>
-      <button onClick={() => searchByGeneration(selectedGeneration)}>世代で検索</button>
-      </div>
+      {/* ローディングと検索結果の表示 */}
+      {loading && <p>読み込み中...</p>}
 
         {selectedPokemon && (
             <div
@@ -433,12 +489,12 @@ const searchByGeneration = async (generation) => {
 }
 
 const styles = {
-divStyle: {
+  divStyle: {
     textAlign: "center",
     margin: "100px",
     padding: "0 10px",
-},
-modalBackdropStyle: {
+  },
+  modalBackdropStyle: {
     position: "fixed",
     top: 0,
     left: 0,
@@ -448,17 +504,20 @@ modalBackdropStyle: {
     display: "flex",
     justifyContent: "center",
     alignItems: "center",
-},
-modalContentStyle: {
+  },
+  modalContentStyle: {
     backgroundColor: "#fff",
     padding: "10px",
     borderRadius: "8px",
     boxShadow: "0px 0px 10px rgba(0, 0, 0, 0.3)",
-},
- // 新しいスタイルオブジェクトを追加
- buttonStyle: {
-  fontSize: '20px', // フォントサイズを大きくする
-  padding: '10px 20px', // パディングを増やす
-  margin: '5px', // マージンを設定
-},
+  },
+  formContainer: {
+    display: "flex",
+    justifyContent: "center",
+    alignItems: "center",
+    marginTop: "20px",
+  },
+  formItem: {
+    margin: "5px",
+  },
 };
