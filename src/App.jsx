@@ -6,7 +6,7 @@ import Main from "./components/Pokemons";
 export default function App() {
   const [searchedPokemon, setSearchedPokemon] = useState('');
   const handleSearch = (searchTerm) => {
-    setSearchedPokemon(searchTerm); // 検索語をセットする
+    setSearchedPokemon(searchTerm); 
   };
 
   return (

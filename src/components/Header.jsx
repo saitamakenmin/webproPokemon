@@ -1,13 +1,13 @@
 export default function Header() {
   const lineStyle = {
-    borderTop: '5px solid #000', // 直線のスタイルを設定
+    borderTop: '5px solid #000', 
   };
 
   const containerStyle = {
     textAlign: "center",
     marginTop: 0,
-    marginLeft: '-100px', // 左のマージンを調整
-    marginRight: '-100px', // 右のマージンを調整
+    marginLeft: '-100px', 
+    marginRight: '-100px', 
     backgroundColor: '',
   };
 
@@ -17,7 +17,7 @@ export default function Header() {
         <font face="fantasy">
           <h1 style={styles.pokemonTitle}>ポケモン図鑑</h1>
         </font>
-        <div style={lineStyle}></div> {/* 直線を描画 */}
+        <div style={lineStyle}></div>
       </div>
     </header>
   );
@@ -25,6 +25,5 @@ export default function Header() {
 
 var styles = {
   pokemonTitle: {
-    // タイトルのスタイル
   },
 };
