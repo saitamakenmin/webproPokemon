@@ -183,20 +183,33 @@ export default function Pokemons() {
 
   const searchByType = async () => {
     if (!selectedType) return;
-
+  
     setLoading(true);
     try {
       const typeInEnglish = typeMapping[selectedType];
       const response = await fetch(`https://pokeapi.co/api/v2/type/${typeInEnglish}`);
       if (!response.ok) {
-        throw new Error('タイプに合致するポケモンが見つかりません');
+        throw new Error('タイプに合致するポケモンが見つかりませんでした');
       }
       const data = await response.json();
-      const pokemonData = await Promise.all(data.pokemon.map(async (pokemon) => {
-        const res = await fetch(pokemon.pokemon.url);
-        return await res.json();
+  
+      // ポケモンのIDが1008以下のものだけを抽出
+      const pokemonIds = data.pokemon
+        .map(pokemon => parseInt(pokemon.pokemon.url.split('/').reverse()[1]))
+        .filter(id => id <= 1008);
+  
+      // 対象のポケモンのデータを取得
+      const pokemonPromises = pokemonIds.map(id => fetchPokemonData(id));
+      let pokemonResults = await Promise.all(pokemonPromises);
+      pokemonResults = pokemonResults.filter(pokemon => pokemon != null);
+  
+      // 日本語名を取得してデータに追加
+      const updatedPokemonResults = await Promise.all(pokemonResults.map(async pokemon => {
+        const japaneseName = await fetchPokemonName(pokemon.id);
+        return { ...pokemon, japaneseName };
       }));
-      setPokemons(pokemonData);
+  
+      setPokemons(updatedPokemonResults);
     } catch (error) {
       console.error(error);
     } finally {
